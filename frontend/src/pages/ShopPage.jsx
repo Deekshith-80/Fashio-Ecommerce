@@ -13,6 +13,7 @@ export default function ShopPage() {
   const [sortOrder, setSortOrder] = useState("low");
   const [products, setProducts] = useState(fallbackProducts);
   const [error, setError] = useState("");
+  const categoryFilter = category.toLowerCase();
 
   useEffect(() => {
     let mounted = true;
@@ -51,8 +52,7 @@ export default function ShopPage() {
       const productName = (product?.name || "").toLowerCase();
       const productCategory = (product?.category || "").toLowerCase();
       const productType = (product?.type || "").toLowerCase();
-      const matchesCategory =
-        category === "ALL" || productCategory.toUpperCase() === category;
+      const matchesCategory = categoryFilter === "all" || productCategory === categoryFilter;
       const matchesQuery =
         !query ||
         productName.includes(query) ||
@@ -68,7 +68,7 @@ export default function ShopPage() {
     return [...result].sort((a, b) =>
       sortOrder === "low" ? a.price - b.price : b.price - a.price,
     );
-  }, [category, searchQuery, sortOrder]);
+  }, [categoryFilter, searchQuery, sortOrder, products]);
 
   const handleAddToBag = (product) => {
     dispatch(

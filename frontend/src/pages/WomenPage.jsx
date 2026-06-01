@@ -6,6 +6,7 @@ import { products as fallbackProducts } from "../utils/productsData";
 
 export default function WomenPage() {
   const [products, setProducts] = useState(fallbackProducts);
+  const targetCategory = "women";
 
   useEffect(() => {
     let mounted = true;
@@ -15,11 +16,17 @@ export default function WomenPage() {
         const { data } = await api.get("/products");
         if (!mounted) return;
         const list = Array.isArray(data) ? data : data?.products || fallbackProducts;
-        setProducts(list.filter((product) => product?.category === "Women"));
+        setProducts(
+          list.filter((product) => (product?.category || "").toLowerCase() === targetCategory),
+        );
       } catch (error) {
         console.error("Failed to fetch women's products:", error);
         if (mounted) {
-          setProducts(fallbackProducts.filter((product) => product?.category === "Women"));
+          setProducts(
+            fallbackProducts.filter(
+              (product) => (product?.category || "").toLowerCase() === targetCategory,
+            ),
+          );
         }
       }
     };
@@ -32,8 +39,9 @@ export default function WomenPage() {
   }, []);
 
   const womenProducts = useMemo(
-    () => products.filter((product) => product?.category === "Women"),
-    [products],
+    () =>
+      products.filter((product) => (product?.category || "").toLowerCase() === targetCategory),
+    [products, targetCategory],
   );
 
   return (

@@ -6,6 +6,7 @@ import { products as fallbackProducts } from "../utils/productsData";
 
 export default function MenPage() {
   const [products, setProducts] = useState(fallbackProducts);
+  const targetCategory = "men";
 
   useEffect(() => {
     let mounted = true;
@@ -15,11 +16,17 @@ export default function MenPage() {
         const { data } = await api.get("/products");
         if (!mounted) return;
         const list = Array.isArray(data) ? data : data?.products || fallbackProducts;
-        setProducts(list.filter((product) => product?.category === "Men"));
+        setProducts(
+          list.filter((product) => (product?.category || "").toLowerCase() === targetCategory),
+        );
       } catch (error) {
         console.error("Failed to fetch men's products:", error);
         if (mounted) {
-          setProducts(fallbackProducts.filter((product) => product?.category === "Men"));
+          setProducts(
+            fallbackProducts.filter(
+              (product) => (product?.category || "").toLowerCase() === targetCategory,
+            ),
+          );
         }
       }
     };
@@ -32,8 +39,9 @@ export default function MenPage() {
   }, []);
 
   const menProducts = useMemo(
-    () => products.filter((product) => product?.category === "Men"),
-    [products],
+    () =>
+      products.filter((product) => (product?.category || "").toLowerCase() === targetCategory),
+    [products, targetCategory],
   );
 
   return (
