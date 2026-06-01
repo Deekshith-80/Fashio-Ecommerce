@@ -20,4 +20,4 @@ FASHIO is a high-end, responsive Single Page Application (SPA) e-commerce storef
 
 1. **Clone the repository:**
    ```bash
-   git clone [https://github.com/YOUR_USERNAME/fashio-store.git](https://github.com/YOUR_USERNAME/fashio-store.git)
+   git clone https://github.com/Deekshith-80/fashio-store/edit/main/README.md
