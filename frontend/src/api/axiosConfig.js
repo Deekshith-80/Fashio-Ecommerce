@@ -1,10 +1,14 @@
 import axios from "axios";
 
-const api = axios.create({
-  baseURL: "http://localhost:5000/api",
+const axiosInstance = axios.create({
+  // Your live Vercel backend URL
+  baseURL: "https://fashio-ecommerce.vercel.app/api",
+  headers: {
+    "Content-Type": "application/json",
+  },
 });
 
-api.interceptors.request.use((config) => {
+axiosInstance.interceptors.request.use((config) => {
   const token = localStorage.getItem("token");
 
   if (token) {
@@ -15,4 +19,4 @@ api.interceptors.request.use((config) => {
   return config;
 });
 
-export default api;
+export default axiosInstance;
