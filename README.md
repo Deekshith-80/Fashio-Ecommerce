@@ -2,7 +2,7 @@
 
 FASHIO is a high-performance full-stack e-commerce application built with a modern MERN architecture. It features an interactive luxury storefront, smooth state-driven cart management, secure hybrid authentication, and a server-verified payment pipeline.
 
-[![Live Demo](https://img.shields.io/badge/Demo-Live%20Website-brightgreen?style=for-the-badge&logo=vercel)](https://fashio-ecommerce-ejd3.vercel.app)
+[![Live Demo](https://img.shields.io/badge/Demo-Live%20Website-brightgreen?style=for-the-badge&logo=vercel)](https://fashio-ecommerce-ejd3.vercel.app/login)
 
 ---
 
