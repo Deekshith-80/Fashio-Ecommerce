@@ -20,13 +20,34 @@ export default function App() {
       <Routes>
         <Route path="/register" element={<Register />} />
         <Route path="/login" element={<Login />} />
-        <Route path="/" element={token ? <Home /> : <Navigate to="/login" replace />} />
-        <Route path="/shop" element={token ? <ShopPage /> : <Navigate to="/login" replace />} />
-        <Route path="/men" element={token ? <MenPage /> : <Navigate to="/login" replace />} />
-        <Route path="/women" element={token ? <WomenPage /> : <Navigate to="/login" replace />} />
-        <Route path="/product/:id" element={token ? <ProductDetail /> : <Navigate to="/login" replace />} />
-        <Route path="/checkout" element={token ? <Checkout /> : <Navigate to="/login" replace />} />
-        <Route path="/dashboard" element={token ? <Dashboard /> : <Navigate to="/login" replace />} />
+        <Route
+          path="/"
+          element={token ? <Home /> : <Navigate to="/login" replace />}
+        />
+        <Route
+          path="/shop"
+          element={token ? <ShopPage /> : <Navigate to="/login" replace />}
+        />
+        <Route
+          path="/men"
+          element={token ? <MenPage /> : <Navigate to="/login" replace />}
+        />
+        <Route
+          path="/women"
+          element={token ? <WomenPage /> : <Navigate to="/login" replace />}
+        />
+        <Route
+          path="/product/:id"
+          element={token ? <ProductDetail /> : <Navigate to="/login" replace />}
+        />
+        <Route
+          path="/checkout"
+          element={token ? <Checkout /> : <Navigate to="/login" replace />}
+        />
+        <Route
+          path="/dashboard"
+          element={token ? <Dashboard /> : <Navigate to="/login" replace />}
+        />
       </Routes>
     </BrowserRouter>
   );
