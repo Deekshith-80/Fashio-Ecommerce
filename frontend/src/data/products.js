@@ -72,4 +72,3 @@ export const products = [
     sizes: ["S", "M", "L", "XL"],
   },
 ];
-

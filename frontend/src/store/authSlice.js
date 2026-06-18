@@ -1,9 +1,32 @@
 import { createSlice } from "@reduxjs/toolkit";
 
+const isBrowser = typeof window !== "undefined";
+
+const loadStoredUser = () => {
+  if (!isBrowser) {
+    return null;
+  }
+
+  try {
+    const storedUser = localStorage.getItem("user");
+    return storedUser ? JSON.parse(storedUser) : null;
+  } catch {
+    return null;
+  }
+};
+
+const loadStoredToken = () => {
+  if (!isBrowser) {
+    return null;
+  }
+
+  return localStorage.getItem("token");
+};
+
 const initialState = {
-  user: null,
-  token: null,
-  isAuthenticated: false,
+  user: loadStoredUser(),
+  token: loadStoredToken(),
+  isAuthenticated: Boolean(loadStoredToken()),
 };
 
 const authSlice = createSlice({

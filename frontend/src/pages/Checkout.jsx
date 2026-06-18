@@ -1,20 +1,51 @@
-import { useMemo, useState } from "react";
-import axios from "axios";
+import { useEffect, useMemo, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { useNavigate } from "react-router-dom";
+import api from "../api/axiosConfig";
 import { clearCart } from "../store/cartSlice";
 import { addOrder } from "../store/ordersSlice";
 
 const inputClass =
   "w-full border border-gray-300 focus:border-black outline-none px-4 py-3 transition-colors bg-white";
 
+const RAZORPAY_CHECKOUT_SCRIPT = "https://checkout.razorpay.com/v1/checkout.js";
+const RAZORPAY_KEY_ID =
+  import.meta.env.VITE_RAZORPAY_KEY_ID || "rzp_test_SymOmUg6RB2DZr";
+
+function loadRazorpayScript() {
+  return new Promise((resolve) => {
+    if (window.Razorpay) {
+      resolve(true);
+      return;
+    }
+
+    const existingScript = document.querySelector(
+      `script[src="${RAZORPAY_CHECKOUT_SCRIPT}"]`,
+    );
+
+    if (existingScript) {
+      existingScript.addEventListener("load", () => resolve(true), { once: true });
+      existingScript.addEventListener("error", () => resolve(false), { once: true });
+      return;
+    }
+
+    const script = document.createElement("script");
+    script.src = RAZORPAY_CHECKOUT_SCRIPT;
+    script.async = true;
+    script.onload = () => resolve(true);
+    script.onerror = () => resolve(false);
+    document.body.appendChild(script);
+  });
+}
+
 export default function Checkout() {
   const dispatch = useDispatch();
   const navigate = useNavigate();
   const cartItems = useSelector((state) => state.cart.cartItems);
   const user = useSelector((state) => state.auth.user);
-  const token = useSelector((state) => state.auth.token);
   const [loading, setLoading] = useState(false);
+  const [scriptReady, setScriptReady] = useState(false);
+  const [error, setError] = useState("");
   const [form, setForm] = useState({
     fullName: user?.name || "",
     email: user?.email || "",
@@ -22,6 +53,23 @@ export default function Checkout() {
     city: "",
     postalCode: "",
   });
+
+  useEffect(() => {
+    let mounted = true;
+
+    const initScript = async () => {
+      const isReady = await loadRazorpayScript();
+      if (mounted) {
+        setScriptReady(isReady);
+      }
+    };
+
+    void initScript();
+
+    return () => {
+      mounted = false;
+    };
+  }, []);
 
   const totals = useMemo(() => {
     const subtotal = cartItems.reduce(
@@ -35,71 +83,114 @@ export default function Checkout() {
       grandTotal: subtotal + shipping,
     };
   }, [cartItems]);
-  const grandTotal = totals.grandTotal;
 
   const handleChange = (event) => {
     const { name, value } = event.target;
     setForm((current) => ({ ...current, [name]: value }));
   };
 
-  const handlePlaceOrder = (event) => {
+  const createRazorpayOrder = async () => {
+    const { data } = await api.post("/orders/razorpay", {
+      products: cartItems.map((item) => ({
+        productId: item.id,
+        name: item.name,
+        price: item.price,
+        quantity: item.quantity,
+        image: item.image,
+        size: item.size,
+      })),
+      totalAmount: totals.grandTotal,
+    });
+
+    return data;
+  };
+
+  const verifyPayment = async (response) => {
+    const { data } = await api.post("/orders/verify", {
+      razorpay_order_id: response.razorpay_order_id,
+      razorpay_payment_id: response.razorpay_payment_id,
+      razorpay_signature: response.razorpay_signature,
+    });
+
+    return data;
+  };
+
+  const handlePlaceOrder = async (event) => {
     event?.preventDefault?.();
-    if (!cartItems.length || loading) return;
 
+    if (!cartItems.length || loading) {
+      return;
+    }
+
+    setError("");
     setLoading(true);
-    const name = form.fullName || "Deekshith D.";
-    const address = form.address;
-    const city = form.city;
-    const postalCode = form.postalCode;
-    const uniqueId = `ORD-${Math.floor(1000 + Math.random() * 9000)}`;
-    const orderPayload = {
-      orderId: uniqueId,
-      items: cartItems,
-      total: grandTotal,
-      shippingDetails: { name, address, city, postalCode },
-      status: "PROCESSING",
-      date: new Date(),
-    };
 
-    const simulatedOrder = {
-      id: uniqueId,
-      items: cartItems,
-      total: grandTotal,
-      shippingDetails: { name, address, city, postalCode },
-      status: "PROCESSING",
-      date: new Date(),
-    };
+    try {
+      const isScriptReady = scriptReady || (await loadRazorpayScript());
 
-    const saveOrder = async () => {
-      try {
-        // Send the order details to your Express backend endpoint
-        const response = await axios.post(
-          "http://localhost:5000/api/orders",
-          orderPayload,
-          {
-            headers: {
-              Authorization: `Bearer ${token || localStorage.getItem("token") || ""}`,
-            },
-          },
-        );
-
-        if (response.status === 201 || response.status === 200) {
-          // ONLY if the backend successfully writes to MongoDB, update frontend state
-          dispatch(addOrder(response.data));
-          dispatch(clearCart());
-          navigate("/dashboard");
-        }
-      } catch (error) {
-        console.error("Network Link Failed:", error);
-        alert(
-          "Network Connection Error! Check your backend terminal log for CORS or endpoint mismatch flags.",
-        );
-      } finally {
-        setLoading(false);
+      if (!isScriptReady || !window.Razorpay) {
+        throw new Error("Razorpay checkout failed to load.");
       }
-    };
 
-    void saveOrder();
+      const createdOrder = await createRazorpayOrder();
+      const razorpayOptions = {
+        key: RAZORPAY_KEY_ID,
+        amount: createdOrder.amount,
+        currency: createdOrder.currency || "INR",
+        name: "Fashio",
+        description: "Secure checkout",
+        order_id: createdOrder.order_id,
+        prefill: {
+          name: form.fullName,
+          email: form.email,
+        },
+        notes: {
+          address: form.address,
+          city: form.city,
+          postalCode: form.postalCode,
+        },
+        theme: {
+          color: "#111111",
+        },
+        handler: async (response) => {
+          try {
+            const verification = await verifyPayment(response);
+            dispatch(addOrder(verification.order));
+            dispatch(clearCart());
+            navigate("/dashboard");
+          } catch (verifyError) {
+            setError(
+              verifyError?.response?.data?.message ||
+                verifyError.message ||
+                "Payment verification failed.",
+            );
+          }
+        },
+        modal: {
+          ondismiss: () => {
+            setLoading(false);
+          },
+        },
+      };
+
+      const razorpay = new window.Razorpay(razorpayOptions);
+      razorpay.on("payment.failed", (response) => {
+        setError(
+          response?.error?.description ||
+            "Payment failed. Please try again using the Razorpay sandbox modal.",
+        );
+        setLoading(false);
+      });
+      razorpay.open();
+      setLoading(false);
+    } catch (orderError) {
+      setError(
+        orderError?.response?.data?.message ||
+          orderError.message ||
+          "Unable to start Razorpay checkout.",
+      );
+      setLoading(false);
+    }
   };
 
   return (
@@ -148,7 +239,7 @@ export default function Checkout() {
               placeholder="Address"
               required
             />
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+            <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
               <input
                 name="city"
                 value={form.city}
@@ -166,6 +257,11 @@ export default function Checkout() {
                 required
               />
             </div>
+            {error ? (
+              <div className="border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+                {error}
+              </div>
+            ) : null}
           </div>
         </form>
 

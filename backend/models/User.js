@@ -19,9 +19,24 @@ const userSchema = new mongoose.Schema({
   },
   password: {
     type: String,
-    required: true,
+    required: false,
     minlength: 6,
     select: false,
+  },
+  provider: {
+    type: String,
+    enum: ["local", "google"],
+    default: "local",
+  },
+  phone: {
+    type: String,
+    trim: true,
+    default: "",
+  },
+  address: {
+    type: String,
+    trim: true,
+    default: "",
   },
   role: {
     type: String,
@@ -36,7 +51,7 @@ const userSchema = new mongoose.Schema({
 
 // Hash password before saving if modified
 userSchema.pre("save", async function () {
-  if (!this.isModified("password")) return;
+  if (!this.isModified("password") || !this.password) return;
 
   const saltRounds = 10;
   this.password = await bcrypt.hash(this.password, saltRounds);
@@ -44,6 +59,7 @@ userSchema.pre("save", async function () {
 
 // Instance method to compare passwords
 userSchema.methods.matchPassword = async function (enteredPassword) {
+  if (!this.password) return false;
   return await bcrypt.compare(enteredPassword, this.password);
 };
 

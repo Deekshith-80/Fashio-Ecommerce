@@ -6,7 +6,7 @@ import { products as fallbackProducts } from "../utils/productsData";
 
 export default function MenPage() {
   const [products, setProducts] = useState(fallbackProducts);
-  const targetCategory = "men";
+  const targetCategory = "Men";
 
   useEffect(() => {
     let mounted = true;
@@ -17,15 +17,13 @@ export default function MenPage() {
         if (!mounted) return;
         const list = Array.isArray(data) ? data : data?.products || fallbackProducts;
         setProducts(
-          list.filter((product) => (product?.category || "").toLowerCase() === targetCategory),
+          list.filter((product) => product?.category === targetCategory),
         );
       } catch (error) {
         console.error("Failed to fetch men's products:", error);
         if (mounted) {
           setProducts(
-            fallbackProducts.filter(
-              (product) => (product?.category || "").toLowerCase() === targetCategory,
-            ),
+            fallbackProducts.filter((product) => product?.category === targetCategory),
           );
         }
       }
@@ -39,8 +37,7 @@ export default function MenPage() {
   }, []);
 
   const menProducts = useMemo(
-    () =>
-      products.filter((product) => (product?.category || "").toLowerCase() === targetCategory),
+    () => products.filter((product) => product?.category === targetCategory),
     [products, targetCategory],
   );
 
@@ -59,12 +56,18 @@ export default function MenPage() {
 
       <section className="mx-auto max-w-7xl px-4 py-10 sm:px-6 lg:px-8">
         <div className="grid grid-cols-1 gap-6 px-8 py-12 sm:grid-cols-2 md:grid-cols-4">
-          {menProducts.map((product) => (
-            <article key={product.id} className="group overflow-hidden border border-black/10 bg-white">
-              <Link to={`/product/${product.id}`} className="block">
+          {menProducts.map((product) => {
+            const productId = product?.id || product?._id;
+
+            return (
+            <article
+              key={productId}
+              className="group overflow-hidden border border-black/10 bg-white"
+            >
+              <Link to={`/product/${productId}`} className="block">
                 <div className="relative overflow-hidden">
                   <img
-                    src={product.image}
+                    src={product.imageUrl || product.image}
                     alt={product.name}
                     className="h-[340px] w-full object-cover transition-transform duration-300 group-hover:scale-[1.03]"
                   />
@@ -74,14 +77,15 @@ export default function MenPage() {
                 </div>
                 <div className="space-y-2 p-5">
                   <p className="text-[10px] uppercase tracking-[0.35em] text-neutral-500">
-                    {product.category}
+                    {product?.category}
                   </p>
-                  <h3 className="text-lg font-medium text-black">{product.name}</h3>
-                  <p className="text-sm text-neutral-500">${product.price}</p>
+                  <h3 className="text-lg font-medium text-black">{product?.name}</h3>
+                  <p className="text-sm text-neutral-500">${product?.price}</p>
                 </div>
               </Link>
             </article>
-          ))}
+            );
+          })}
         </div>
       </section>
     </div>

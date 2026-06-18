@@ -8,12 +8,11 @@ import { products as fallbackProducts } from "../utils/productsData";
 
 export default function ShopPage() {
   const dispatch = useDispatch();
-  const [searchQuery, setSearchQuery] = useState("");
-  const [category, setCategory] = useState("ALL");
+  const [searchTerm, setSearchTerm] = useState("");
+  const [category, setCategory] = useState("All");
   const [sortOrder, setSortOrder] = useState("low");
   const [products, setProducts] = useState(fallbackProducts);
   const [error, setError] = useState("");
-  const categoryFilter = category.toLowerCase();
 
   useEffect(() => {
     let mounted = true;
@@ -40,27 +39,16 @@ export default function ShopPage() {
   }, []);
 
   const filteredProducts = useMemo(() => {
-    const query = searchQuery.toLowerCase().trim();
-    const aliasMap = {
-      glasses: ["glasses", "sunglasses"],
-      coat: ["coat", "jacket"],
-      shirt: ["shirt", "hoodie"],
-      hat: ["hat", "cap"],
-    };
+    const query = searchTerm.toLowerCase().trim();
 
     const result = products.filter((product) => {
       const productName = (product?.name || "").toLowerCase();
-      const productCategory = (product?.category || "").toLowerCase();
-      const productType = (product?.type || "").toLowerCase();
-      const matchesCategory = categoryFilter === "all" || productCategory === categoryFilter;
+      const productDescription = (product?.description || "").toLowerCase();
+      const matchesCategory = category === "All" || product?.category === category;
       const matchesQuery =
         !query ||
         productName.includes(query) ||
-        productCategory.includes(query) ||
-        productType.includes(query) ||
-        Object.entries(aliasMap).some(
-          ([alias, targets]) => query.includes(alias) && targets.includes(productType),
-        );
+        productDescription.includes(query);
 
       return matchesCategory && matchesQuery;
     });
@@ -68,7 +56,7 @@ export default function ShopPage() {
     return [...result].sort((a, b) =>
       sortOrder === "low" ? a.price - b.price : b.price - a.price,
     );
-  }, [categoryFilter, searchQuery, sortOrder, products]);
+  }, [category, searchTerm, sortOrder, products]);
 
   const handleAddToBag = (product) => {
     dispatch(
@@ -76,7 +64,7 @@ export default function ShopPage() {
         id: product.id,
         name: product.name,
         price: product.price,
-        image: product.image,
+        image: product.imageUrl || product.image,
         quantity: 1,
       }),
     );
@@ -96,8 +84,8 @@ export default function ShopPage() {
               </p>
               <input
                 type="text"
-                value={searchQuery}
-                onChange={(event) => setSearchQuery(event.target.value)}
+                value={searchTerm}
+                onChange={(event) => setSearchTerm(event.target.value)}
                 placeholder="Search hats, jackets, glasses, shirts..."
                 className="mt-4 w-full border border-gray-300 px-4 py-3 text-sm outline-none transition-colors focus:border-black"
               />
@@ -108,7 +96,7 @@ export default function ShopPage() {
                 Category
               </p>
               <div className="mt-4 space-y-2">
-                {["ALL", "MEN", "WOMEN"].map((item) => (
+                {["All", "Men", "Women"].map((item) => (
                   <button
                     key={item}
                     type="button"
@@ -119,8 +107,8 @@ export default function ShopPage() {
                         : "border-black/10 bg-white text-black hover:border-black"
                     }`}
                   >
-                    <span>{item}</span>
-                    <span>{category === item ? "Active" : ""}</span>
+                      <span>{item}</span>
+                      <span>{category === item ? "Active" : ""}</span>
                   </button>
                 ))}
               </div>
@@ -157,12 +145,18 @@ export default function ShopPage() {
           {error ? <p className="mt-4 text-sm text-neutral-500">{error}</p> : null}
 
           <div className="mt-8 grid grid-cols-1 gap-6 sm:grid-cols-2 xl:grid-cols-3">
-            {filteredProducts.map((product) => (
-              <article key={product.id} className="group overflow-hidden border border-black/10 bg-white">
-                <Link to={`/product/${product.id}`} className="block">
+            {filteredProducts.map((product) => {
+              const productId = product?.id || product?._id;
+
+              return (
+              <article
+                key={productId}
+                className="group overflow-hidden border border-black/10 bg-white"
+              >
+                <Link to={`/product/${productId}`} className="block">
                   <div className="relative overflow-hidden">
                     <img
-                      src={product.image}
+                      src={product.imageUrl || product.image}
                       alt={product.name}
                       className="h-[360px] w-full object-cover transition-transform duration-300 group-hover:scale-[1.03]"
                     />
@@ -180,16 +174,17 @@ export default function ShopPage() {
                     </div>
                     <div className="space-y-2 p-5">
                       <p className="text-[10px] uppercase tracking-[0.35em] text-neutral-500">
-                        {product.category} / {product.type}
+                        {product?.category} / {product?.type}
                       </p>
                       <h3 className="text-lg font-semibold tracking-tight text-black">
-                        {product.name}
+                        {product?.name}
                       </h3>
-                      <p className="text-sm text-neutral-500">${product.price}</p>
+                      <p className="text-sm text-neutral-500">${product?.price}</p>
                     </div>
                   </Link>
               </article>
-            ))}
+              );
+            })}
           </div>
         </main>
       </section>

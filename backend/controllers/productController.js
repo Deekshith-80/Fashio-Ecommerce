@@ -38,15 +38,27 @@ async function createProduct(req, res) {
         .json({ success: false, message: "Not authorized as an admin" });
     }
 
-    const { name, description, price, image, category, stock } = req.body;
+    const {
+      name,
+      description,
+      price,
+      imageUrl,
+      image,
+      category,
+      type,
+      stock,
+      quantityInStock,
+    } = req.body;
 
     const product = await Product.create({
       name,
       description,
       price,
-      image,
+      imageUrl: imageUrl || image,
       category,
-      stock,
+      type,
+      stock: stock ?? quantityInStock,
+      quantityInStock,
     });
 
     return res.status(201).json({ success: true, product });

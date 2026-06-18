@@ -4,6 +4,8 @@ const cors = require("cors");
 const dotenv = require("dotenv");
 const connectDB = require("./config/db");
 const authRoutes = require("./routes/authRoutes");
+const googleAuthRoutes = require("./routes/googleAuthRoutes");
+const userRoutes = require("./routes/userRoutes");
 const productRoutes = require("./routes/productRoutes");
 const orderRoutes = require("./routes/orderRoutes");
 
@@ -21,6 +23,8 @@ app.use(express.json()); // Allows us to parse JSON bodies
 
 // Auth routes
 app.use("/api/auth", authRoutes);
+app.use("/api/auth", googleAuthRoutes);
+app.use("/api/user", userRoutes);
 
 // Product routes
 app.use("/api/products", productRoutes);

@@ -1,24 +1,69 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useDispatch } from "react-redux";
-import { products } from "../utils/productsData";
+import api from "../api/axiosConfig";
 import { addToCart } from "../store/cartSlice";
 
 const ProductDetail = () => {
   let { id } = useParams();
   const navigate = useNavigate();
   const dispatch = useDispatch();
+  const [product, setProduct] = useState(null);
   const [selectedSize, setSelectedSize] = useState("M");
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState("");
 
   const cleanId = id && id.includes(":") ? id.split(":")[0] : id;
 
-  const product = products.find((item) => item.id === parseInt(cleanId));
+  useEffect(() => {
+    let mounted = true;
+
+    const fetchProduct = async () => {
+      try {
+        const { data } = await api.get(`/products/${cleanId}`);
+        if (!mounted) return;
+        setProduct(data);
+      } catch (err) {
+        console.error("Failed to load product detail:", err);
+        if (mounted) setError("Product not found or failed to load.");
+      } finally {
+        if (mounted) setIsLoading(false);
+      }
+    };
+
+    fetchProduct();
+
+    return () => {
+      mounted = false;
+    };
+  }, [cleanId]);
+
+  const handleAddToBag = () => {
+    dispatch(
+      addToCart({
+        ...product,
+        image: product.imageUrl || product.image,
+        size: selectedSize,
+        quantity: 1,
+      }),
+    );
+
+    navigate("/checkout");
+  };
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <p className="text-sm text-neutral-500">Loading product details...</p>
+      </div>
+    );
+  }
 
   if (!product) {
     return (
       <div className="min-h-screen flex flex-col items-center justify-center">
         <p className="text-sm tracking-widest text-gray-500 uppercase mb-4">
-          Product Not Found
+          {error || "Product Not Found"}
         </p>
         <button
           onClick={() => navigate("/shop")}
@@ -30,18 +75,14 @@ const ProductDetail = () => {
     );
   }
 
-const handleAddToBag = () => {
-    // 1. Push the product data into your global Redux cart slice
-    dispatch(addToCart({ ...product, size: selectedSize, quantity: 1 }));
-
-    // 2. Instantly push the browser straight to the checkout page
-    navigate("/checkout");
-  };
-
   return (
     <div className="max-w-7xl mx-auto px-8 py-24 grid grid-cols-1 md:grid-cols-2 gap-16">
       <div className="aspect-[3/4] w-full bg-gray-100 overflow-hidden">
-        <img src={product.image} alt={product.name} className="w-full h-full object-cover" />
+        <img
+          src={product.imageUrl || product.image}
+          alt={product.name}
+          className="w-full h-full object-cover"
+        />
       </div>
 
       <div className="flex flex-col justify-center">

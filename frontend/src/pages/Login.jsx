@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useDispatch } from "react-redux";
 import { Link, useNavigate } from "react-router-dom";
+import { GoogleLogin } from "@react-oauth/google";
 import { setCredentials } from "../store/authSlice";
 import api from "../api/axiosConfig";
 
@@ -9,6 +10,7 @@ export default function Login() {
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  const [googleLoading, setGoogleLoading] = useState(false);
 
   const dispatch = useDispatch();
   const navigate = useNavigate();
@@ -34,6 +36,33 @@ export default function Login() {
       setError(message);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleGoogleSuccess = async (credentialResponse) => {
+    const credential = credentialResponse?.credential;
+
+    if (!credential) {
+      setError("Google sign-in did not return a valid credential.");
+      return;
+    }
+
+    setGoogleLoading(true);
+    setError("");
+
+    try {
+      const { data } = await api.post("/auth/google", { credential });
+
+      localStorage.setItem("token", data.token);
+      localStorage.setItem("user", JSON.stringify(data.user));
+      dispatch(setCredentials({ user: data.user, token: data.token }));
+      navigate("/");
+    } catch (err) {
+      const message =
+        err?.response?.data?.message || "Google sign-in failed. Please try again.";
+      setError(message);
+    } finally {
+      setGoogleLoading(false);
     }
   };
 
@@ -101,6 +130,30 @@ export default function Login() {
               {loading ? "Signing In..." : "Sign In"}
             </button>
           </form>
+
+          <div className="mt-6 flex items-center gap-4">
+            <div className="h-px flex-1 bg-gray-200" />
+            <span className="text-[10px] uppercase tracking-[0.35em] text-gray-400">
+              or
+            </span>
+            <div className="h-px flex-1 bg-gray-200" />
+          </div>
+
+          <div className="mt-6">
+            <GoogleLogin
+              onSuccess={handleGoogleSuccess}
+              onError={() => setError("Google sign-in was cancelled or failed.")}
+              text="signin_with"
+              shape="rectangular"
+              size="large"
+              width={384}
+            />
+            {googleLoading ? (
+              <p className="mt-3 text-xs uppercase tracking-[0.3em] text-gray-400">
+                Connecting to Google...
+              </p>
+            ) : null}
+          </div>
 
           <div className="mt-8">
             <Link

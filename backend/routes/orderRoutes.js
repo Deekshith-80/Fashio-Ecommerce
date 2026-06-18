@@ -1,16 +1,18 @@
 const express = require("express");
 const {
-  createOrder,
-  addOrderItems,
-  getMyOrders,
+  createRazorpayOrder,
+  verifyRazorpayPayment,
+  getUserOrders,
 } = require("../controllers/orderController");
 const { protect } = require("../middleware/authMiddleware");
 
 const router = express.Router();
 
-router.post("/", protect, createOrder);
-router.post("/legacy", protect, addOrderItems);
-router.get("/my-orders", protect, getMyOrders);
-router.get("/myorders", protect, getMyOrders);
+router.post("/", protect, createRazorpayOrder);
+router.post("/razorpay", protect, createRazorpayOrder);
+router.post("/verify", protect, verifyRazorpayPayment);
+router.get("/user", protect, getUserOrders);
+router.get("/my-orders", protect, getUserOrders);
+router.get("/myorders", protect, getUserOrders);
 
 module.exports = router;

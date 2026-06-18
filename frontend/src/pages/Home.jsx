@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { useSelector } from "react-redux";
 import Navbar from "../components/Navbar";
-import { products } from "../utils/productsData";
+import api from "../api/axiosConfig";
 
 const carouselImages = [
   "https://images.pexels.com/photos/9549295/pexels-photo-9549295.jpeg",
@@ -13,6 +13,9 @@ const carouselImages = [
 export default function Home() {
   const [activeSlide, setActiveSlide] = useState(0);
   const [activeCategory, setActiveCategory] = useState("All");
+  const [products, setProducts] = useState([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState("");
   const bagCount = useSelector((state) =>
     state.cart.cartItems.reduce((sum, item) => sum + item.quantity, 0),
   );
@@ -25,10 +28,33 @@ export default function Home() {
     return () => clearInterval(timer);
   }, []);
 
+  useEffect(() => {
+    let mounted = true;
+
+    const fetchProducts = async () => {
+      try {
+        const { data } = await api.get("/products");
+        if (!mounted) return;
+        setProducts(Array.isArray(data) ? data : data?.products || []);
+      } catch (err) {
+        console.error("Failed loading homepage products:", err);
+        if (mounted) setError("Unable to load latest products.");
+      } finally {
+        if (mounted) setIsLoading(false);
+      }
+    };
+
+    fetchProducts();
+
+    return () => {
+      mounted = false;
+    };
+  }, []);
+
   const filteredProducts = useMemo(() => {
     if (activeCategory === "All") return products;
-    return products.filter((product) => product.category === activeCategory);
-  }, [activeCategory]);
+    return products.filter((product) => product?.category === activeCategory);
+  }, [activeCategory, products]);
 
   return (
     <div className="min-h-screen bg-[#fbfaf8] text-black">
@@ -88,29 +114,46 @@ export default function Home() {
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-6 px-8 max-w-7xl mx-auto py-12">
-          {filteredProducts.map((product) => (
-            <article key={product.id} className="group overflow-hidden border border-black/10 bg-white">
-              <Link to={`/product/${product.id}`} className="block">
-                <div className="relative overflow-hidden">
-                  <img
-                    src={product.image}
-                    alt={product.name}
-                    className="h-[340px] w-full object-cover transition-transform duration-300 group-hover:scale-[1.03]"
-                  />
-                  <button className="absolute bottom-0 left-0 right-0 translate-y-full bg-black py-4 text-xs font-medium uppercase tracking-[0.3em] text-white transition-transform duration-300 group-hover:translate-y-0">
-                    ADD TO BAG
-                  </button>
-                </div>
-                <div className="space-y-2 p-5">
-                  <p className="text-[10px] uppercase tracking-[0.35em] text-neutral-500">
-                    {product.category}
-                  </p>
-                  <h3 className="text-lg font-medium text-black">{product.name}</h3>
-                  <p className="text-sm text-neutral-500">${product.price}</p>
-                </div>
-              </Link>
-            </article>
-          ))}
+          {isLoading ? (
+            <div className="col-span-full py-20 text-center text-sm text-neutral-500">
+              Loading products...
+            </div>
+          ) : filteredProducts.length ? (
+            filteredProducts.map((product) => {
+              const productId = product?.id || product?._id;
+
+              return (
+              <article
+                key={productId}
+                className="group overflow-hidden border border-black/10 bg-white"
+              >
+                <Link to={`/product/${productId}`} className="block">
+                  <div className="relative overflow-hidden">
+                    <img
+                      src={product.imageUrl || product.image}
+                      alt={product.name}
+                      className="h-[340px] w-full object-cover transition-transform duration-300 group-hover:scale-[1.03]"
+                    />
+                    <button className="absolute bottom-0 left-0 right-0 translate-y-full bg-black py-4 text-xs font-medium uppercase tracking-[0.3em] text-white transition-transform duration-300 group-hover:translate-y-0">
+                      ADD TO BAG
+                    </button>
+                  </div>
+                  <div className="space-y-2 p-5">
+                    <p className="text-[10px] uppercase tracking-[0.35em] text-neutral-500">
+                      {product?.category}
+                    </p>
+                    <h3 className="text-lg font-medium text-black">{product?.name}</h3>
+                    <p className="text-sm text-neutral-500">${product?.price}</p>
+                  </div>
+                </Link>
+              </article>
+              );
+            })
+          ) : (
+            <div className="col-span-full py-20 text-center text-sm text-neutral-500">
+              {error || "No products available."}
+            </div>
+          )}
         </div>
       </section>
     </div>
